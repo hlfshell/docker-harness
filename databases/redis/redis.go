@@ -45,20 +45,15 @@ func (r *Redis) Create() error {
 	r.port = ports["6379"]
 
 	// Ensure that the container is running
-	start := time.Now()
-	timeout := 10 * time.Second
-	running := false
-	for !running && time.Since(start) < timeout {
-		running, err = r.container.IsRunning()
-		if err != nil {
-			r.container.Cleanup()
-			return err
-		}
-	}
-	if !running {
+	running, err := r.container.IsRunning()
+	if err != nil {
+		r.container.Cleanup()
+		return err
+	} else if !running {
 		r.container.Cleanup()
 		return fmt.Errorf("container failed to start within timeout")
 	}
+
 	return nil
 }
 
