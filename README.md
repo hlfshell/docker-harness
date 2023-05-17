@@ -121,7 +121,7 @@ defer db.Close()
 ## Redis Example
 
 ```golang
-r := NewRedis(t.Name())
+r := NewRedis("TestContainer")
 
 err := r.Create()
 require.Nil(t, err)
@@ -130,4 +130,21 @@ defer r.Cleanup()
 db, err := r.ConnectWithTimeout(10 * time.Second)
 require.Nil(t, err)
 defer db.Close()
+```
+
+## Memcached Example
+
+```golang
+m, err := NewMemcached("TestContainer")
+require.Nil(t, err)
+
+// Create the container
+err = m.Create()
+require.Nil(t, err)
+defer m.Cleanup()
+
+// Connect to the database
+client, err := m.ConnectWithTimeout(10 * time.Second)
+require.Nil(t, err)
+require.NotNil(t, client)
 ```
