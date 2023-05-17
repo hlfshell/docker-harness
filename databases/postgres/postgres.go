@@ -54,8 +54,7 @@ func (p *Postgres) Create() error {
 	ports := p.container.GetPorts()
 	p.port = ports["5432"]
 
-	// Connect to the database, but have a built in retry
-	// / timeout due to startup time of the container
+	// Ensure that the container is running
 	start := time.Now()
 	timeout := 10 * time.Second
 	running := false
