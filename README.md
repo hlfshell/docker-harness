@@ -5,6 +5,7 @@
 Currently, the following databases are also provided:
 * PostgreSQL
 * MySQL
+* Redis
 
 ## Example Usage
 ```golang
@@ -111,4 +112,22 @@ require.nil(t, err)
 err = container.Create()
 require.Nil(t, err)
 defer container.Cleanup()
+
+db, err := container.ConnectWithTimeout(10 * time.Second)
+require.Nil(t, err)
+defer db.Close()
+```
+
+## Redis Example
+
+```golang
+r := NewRedis(t.Name())
+
+err := r.Create()
+require.Nil(t, err)
+defer r.Cleanup()
+
+db, err := r.ConnectWithTimeout(10 * time.Second)
+require.Nil(t, err)
+defer db.Close()
 ```
