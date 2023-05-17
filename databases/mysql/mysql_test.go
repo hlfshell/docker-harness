@@ -27,7 +27,7 @@ func TestMysql(t *testing.T) {
 	defer m.Cleanup()
 
 	// Connect to the database
-	db, err := m.ConnectWithTimeout(10 * time.Second)
+	db, err := m.ConnectWithTimeout(20 * time.Second)
 	require.Nil(t, err)
 	require.NotNil(t, db)
 

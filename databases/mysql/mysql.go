@@ -71,21 +71,6 @@ func (m *Mysql) Create() error {
 		return fmt.Errorf("container failed to start within timeout")
 	}
 	return nil
-
-	// Now that the container is running, attempt to create
-	// a db connection
-	// var db *sql.DB
-	// for time.Since(start) < timeout {
-	// 	db, err = m.Connect()
-	// 	fmt.Println("err>>", err)
-	// 	if err == nil {
-	// 		break
-	// 	}
-	// }
-	// if err != nil {
-	// 	m.container.Cleanup()
-	// }
-	// return db, err
 }
 
 func (m *Mysql) Connect() (*sql.DB, error) {
@@ -96,7 +81,7 @@ func (m *Mysql) Connect() (*sql.DB, error) {
 		m.port,
 		m.database,
 	)
-	fmt.Println("connection string", connectionString)
+
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return nil, err
@@ -118,10 +103,9 @@ func (m *Mysql) ConnectWithTimeout(timeout time.Duration) (*sql.DB, error) {
 	start := time.Now()
 	var db *sql.DB
 	var err error
-	attempts := 0
+
 	for time.Since(start) < timeout {
 		db, err = m.Connect()
-		attempts++
 		if err == nil && db != nil {
 			break
 		} else {
@@ -130,7 +114,7 @@ func (m *Mysql) ConnectWithTimeout(timeout time.Duration) (*sql.DB, error) {
 			time.Sleep(50 * time.Millisecond)
 		}
 	}
-	fmt.Println("attempts", attempts)
+
 	return db, err
 }
 
