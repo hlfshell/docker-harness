@@ -14,7 +14,6 @@ type Redis struct {
 	container *harness.Container
 	client    *redis.Client
 	port      string
-	password  string
 }
 
 func NewRedis(name string) *Redis {
@@ -32,7 +31,6 @@ func NewRedis(name string) *Redis {
 	}
 	return &Redis{
 		container: container,
-		password:  "",
 	}
 }
 
@@ -68,8 +66,7 @@ func (r *Redis) Connect() (*redis.Client, error) {
 	client := redis.NewClient(
 		&redis.Options{
 			Addr: fmt.Sprintf("0.0.0.0:%s", r.port),
-			// Password: r.password,
-			DB: 0,
+			DB:   0,
 		},
 	)
 
