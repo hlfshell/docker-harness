@@ -3,6 +3,7 @@ module github.com/hlfshell/docker-harness
 go 1.20
 
 require (
+	github.com/bradfitz/gomemcache v0.0.0-20230124162541-5f7a7d875746
 	github.com/docker/docker v23.0.6+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/go-redis/redis/v8 v8.11.5
