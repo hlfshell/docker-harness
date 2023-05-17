@@ -1,7 +1,10 @@
 # docker-harness
 
-`docker-harness` is a golang package that provides a simple interface for using docker for
-testing applications.
+`docker-harness` is a golang package that provides a simple interface for using docker for testing applications. It also provides several useful applications pre-built and ready-to-use for testing as either out-of-the-box utilities or examples to follow.
+
+Currently, the following databases are also provided:
+* PostgreSQL
+* MySQL
 
 ## Example Usage
 ```golang
@@ -63,3 +66,49 @@ func main() {
 
 The name is assumed unique for the given container instance - thus if a container already exists with the same name, it will be destroyed when the next instance is created.
 
+## Postgres Example
+```golang
+
+container, err := postgres.NewPostgres(
+    // Container name - if left blank it'll allow docker to set it
+    "TestContainer",
+    // Image tag - "" is defaulted to "latest"
+    "",
+    // Username
+    "donatello",
+    // Password
+    "super-secret",
+    // Database
+    "database",
+)
+require.Nil(t, err)
+
+err = container.Create()
+require.Nil(t, err)
+defer container.Cleanup()
+
+db, err := container.ConnectWithTimeout(10 * time.Second)
+require.Nil(t, err)
+defer db.Close()
+```
+
+## Mysql Example
+```golang
+container, err := mysql.NewMysql(
+    // Container name - if left blank it'll allow docker to set it
+    "TestContainer",
+    // Image tag - "" is defaulted to "latest"
+    "",
+    // Username
+    "donatello",
+    // Password
+    "super-secret",
+    // Database
+    "database",
+)
+require.nil(t, err)
+
+err = container.Create()
+require.Nil(t, err)
+defer container.Cleanup()
+```
