@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,11 +20,19 @@ func TestPostgres(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, p)
 
-	// Connect to the database
-	db, err := p.Create()
+	// Create the container
+	err = p.Create()
+	require.Nil(t, err)
+	defer p.Cleanup()
+
+	// Attempt to create a database connection
+	db, err := p.ConnectWithTimeout(10 * time.Second)
 	require.Nil(t, err)
 	require.NotNil(t, db)
-	defer p.Cleanup()
+
+	// Ensure our DB is connected
+	err = db.Ping()
+	require.Nil(t, err)
 
 	// Create a table
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS test (id SERIAL PRIMARY KEY, name TEXT)")

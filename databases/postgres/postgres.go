@@ -44,10 +44,10 @@ func NewPostgres(name string, tag string, username string, password string, data
 	}, nil
 }
 
-func (p *Postgres) Create() (*sql.DB, error) {
+func (p *Postgres) Create() error {
 	err := p.container.Start()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Grab the assigned port
@@ -63,25 +63,30 @@ func (p *Postgres) Create() (*sql.DB, error) {
 		running, err = p.container.IsRunning()
 		if err != nil {
 			p.container.Cleanup()
-			return nil, err
+			return err
 		}
 	}
 	if !running {
 		p.container.Cleanup()
-		return nil, fmt.Errorf("container failed to start within timeout")
+		return fmt.Errorf("container failed to start within timeout")
 	}
+	return nil
+}
 
-	// Now that the container is running, attempt to create
-	// a db connection
+func (p *Postgres) ConnectWithTimeout(timeout time.Duration) (*sql.DB, error) {
+	start := time.Now()
 	var db *sql.DB
+	var err error
 	for time.Since(start) < timeout {
 		db, err = p.Connect()
-		if err == nil {
+		if err == nil && db != nil {
 			break
+		} else {
+			// Introduce a small delay before trying again to
+			// allow the databse to recover from a connection
+			// attempt; we don't want to overwhelm the db
+			time.Sleep(50 * time.Millisecond)
 		}
-	}
-	if err != nil {
-		p.container.Cleanup()
 	}
 	return db, err
 }
@@ -117,5 +122,8 @@ func (p *Postgres) GetContainer() *harness.Container {
 }
 
 func (p *Postgres) Cleanup() error {
+	if p.db != nil {
+		p.db.Close()
+	}
 	return p.container.Cleanup()
 }
