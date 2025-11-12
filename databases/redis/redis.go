@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -9,6 +10,13 @@ import (
 
 	"github.com/go-redis/redis/v8"
 )
+
+type FakeRobot struct {
+	ID          string
+	container   *harness.Container
+	redisClient *redis.Client
+	mysqlDB     *sql.DB
+}
 
 type Redis struct {
 	container *harness.Container
