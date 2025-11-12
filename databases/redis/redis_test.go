@@ -12,10 +12,12 @@ import (
 
 func TestRedis(t *testing.T) {
 	// Create a new redis container
-	r := NewRedis(t.Name())
+	r, err := NewRedis(t.Name())
+	require.Nil(t, err)
+	require.NotNil(t, r)
 
 	// Create the container
-	err := r.Create()
+	err = r.Create()
 	require.Nil(t, err)
 	defer r.Cleanup()
 

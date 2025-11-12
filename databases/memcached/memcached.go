@@ -62,7 +62,7 @@ func (m *Memcached) Create() error {
 func (m *Memcached) Connect() (*memcache.Client, error) {
 	client := memcache.New(fmt.Sprintf("0.0.0.0:%s", m.port))
 
-	// Ping the
+	// Ping the database to ensure we're connected
 	err := client.Ping()
 	if err != nil {
 		return nil, err

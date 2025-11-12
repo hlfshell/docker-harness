@@ -3,12 +3,11 @@ package dockerharness
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"testing"
-	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,8 +16,7 @@ func TestImagePullExistsAndDelete(t *testing.T) {
 	// First we attempt to pull a non existent image;
 	// this should fail
 	containerName := fmt.Sprintf("%s%s", t.Name(), "-non-existent-image")
-	rand.Seed(time.Now().UnixNano())
-	imageName := fmt.Sprintf("non-existent-image-%d", rand.Int())
+	imageName := fmt.Sprintf("non-existent-image-%d", rand.IntN(1000000))
 	container, err := NewContainer(
 		containerName,
 		imageName,
@@ -142,7 +140,7 @@ func TestCleanup(t *testing.T) {
 		volumeExistsMap[volume] = false
 	}
 
-	volumes, err := container.client.VolumeList(context.Background(), filters.Args{})
+	volumes, err := container.client.VolumeList(context.Background(), volume.ListOptions{})
 	require.Nil(t, err)
 	for _, volume := range volumes.Volumes {
 		if _, ok := volumeExistsMap[volume.Name]; ok {
@@ -171,14 +169,14 @@ func TestCleanup(t *testing.T) {
 	assert.False(t, running)
 
 	// Ensure that the container is removed
-	containers, err := container.client.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := container.client.ContainerList(context.Background(), container.ListOptions{})
 	require.Nil(t, err)
 	for _, c := range containers {
 		assert.NotEqual(t, container.id, c.ID)
 	}
 
 	// Ensure that all volumes expected to exist exists
-	volumes, err = container.client.VolumeList(context.Background(), filters.Args{})
+	volumes, err = container.client.VolumeList(context.Background(), volume.ListOptions{})
 	require.Nil(t, err)
 	for _, volume := range volumes.Volumes {
 		if _, ok := volumeExistsMap[volume.Name]; ok {

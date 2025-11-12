@@ -7,7 +7,7 @@ import (
 
 	harness "github.com/hlfshell/docker-harness"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 type Redis struct {
@@ -16,7 +16,7 @@ type Redis struct {
 	port      string
 }
 
-func NewRedis(name string) *Redis {
+func NewRedis(name string) (*Redis, error) {
 	container, err := harness.NewContainer(
 		name,
 		"redis",
@@ -27,17 +27,17 @@ func NewRedis(name string) *Redis {
 		map[string]string{},
 	)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create redis container: %w", err)
 	}
 	return &Redis{
 		container: container,
-	}
+	}, nil
 }
 
 func (r *Redis) Create() error {
 	err := r.container.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start redis container: %w", err)
 	}
 
 	// Grab the assigned port
@@ -48,10 +48,10 @@ func (r *Redis) Create() error {
 	running, err := r.container.IsRunning()
 	if err != nil {
 		r.container.Cleanup()
-		return err
+		return fmt.Errorf("failed to check container status: %w", err)
 	} else if !running {
 		r.container.Cleanup()
-		return fmt.Errorf("container failed to start within timeout")
+		return fmt.Errorf("container failed to start")
 	}
 
 	return nil
@@ -65,12 +65,12 @@ func (r *Redis) Connect() (*redis.Client, error) {
 		},
 	)
 
-	// Ping the databse to ensure we're connected
+	// Ping the database to ensure we're connected
 	pong, err := client.Ping(context.Background()).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ping redis: %w", err)
 	} else if pong != "PONG" {
-		return nil, fmt.Errorf("failed to ping database")
+		return nil, fmt.Errorf("unexpected ping response: %s", pong)
 	}
 
 	r.client = client

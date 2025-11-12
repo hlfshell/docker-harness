@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -13,7 +14,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
-	"github.com/phayes/freeport"
 )
 
 type Container struct {
@@ -105,7 +105,7 @@ func (c *Container) Start() error {
 	// Determine if a container of the same name (but different
 	// id) exists. If so, we need to remove it
 	if c.name != "" {
-		containers, err := c.client.ContainerList(context.Background(), types.ContainerListOptions{
+		containers, err := c.client.ContainerList(context.Background(), container.ListOptions{
 			All: true,
 		})
 		if err != nil {
@@ -167,9 +167,9 @@ func (c *Container) Start() error {
 
 		// If the port is not specified, then assign any free port
 		if v == "" {
-			freePort, err := freeport.GetFreePort()
+			freePort, err := getFreePort()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to find free port: %w", err)
 			}
 			v = fmt.Sprintf("%d", freePort)
 			c.ports[k] = v
@@ -207,13 +207,13 @@ func (c *Container) Start() error {
 	}
 	c.id = response.ID
 
-	err = c.client.ContainerStart(context.Background(), response.ID, types.ContainerStartOptions{})
+	err = c.client.ContainerStart(context.Background(), response.ID, container.StartOptions{})
 	if err != nil {
 		return err
 	}
 
 	// Identify volumes attached to our container
-	list, err := c.client.ContainerList(context.Background(), types.ContainerListOptions{})
+	list, err := c.client.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func (c *Container) Cleanup() error {
 	defer c.lock.Unlock()
 
 	// Remove the container
-	err := c.client.ContainerRemove(context.Background(), c.id, types.ContainerRemoveOptions{})
+	err := c.client.ContainerRemove(context.Background(), c.id, container.RemoveOptions{})
 	if err != nil {
 		return err
 	}
@@ -390,10 +390,10 @@ func ImageExists(client *docker.Client, image string, tag string) (bool, error) 
 DeleteImage will remove a specific image/tag from your machine
 */
 func DeleteImage(client *docker.Client, image string, tag string) error {
-	// Chcek if the image exists
+	// Check if the image exists
 	exists, err := ImageExists(client, image, tag)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check if image exists: %w", err)
 	} else if !exists {
 		return nil
 	}
@@ -401,7 +401,7 @@ func DeleteImage(client *docker.Client, image string, tag string) error {
 	// Attempt to remove the image
 	_, err = client.ImageRemove(context.Background(), fmt.Sprintf("%s:%s", image, tag), types.ImageRemoveOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove image: %w", err)
 	}
 
 	return nil
@@ -414,7 +414,7 @@ all volumes associated with that container.
 func CleanupAndKillContainer(client *docker.Client, name string) error {
 	// Get the container's ID
 	volumes := []string{}
-	containers, err := client.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := client.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -439,7 +439,7 @@ func CleanupAndKillContainer(client *docker.Client, name string) error {
 	}
 
 	// Remove the container
-	err = client.ContainerRemove(context.Background(), name, types.ContainerRemoveOptions{})
+	err = client.ContainerRemove(context.Background(), name, container.RemoveOptions{})
 	if err != nil {
 		return err
 	}
@@ -453,4 +453,22 @@ func CleanupAndKillContainer(client *docker.Client, name string) error {
 	}
 
 	return nil
+}
+
+// getFreePort finds an available port by listening on port 0, which
+// automatically assigns a free port, then closes the listener and
+// returns the port number.
+func getFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, fmt.Errorf("failed to resolve address: %w", err)
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to listen: %w", err)
+	}
+	defer l.Close()
+
+	return l.Addr().(*net.TCPAddr).Port, nil
 }
