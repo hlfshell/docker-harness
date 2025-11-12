@@ -44,6 +44,34 @@ This granular separation ensures you only pull the dependencies for the database
 - **Redis**: Core harness + `github.com/redis/go-redis/v9` (Redis client)
 - **Memcached**: Core harness + `github.com/bradfitz/gomemcache` (Memcached client)
 
+## Development
+
+This project uses [Just](https://just.systems/) as a command runner for common development tasks.
+
+### Available Commands
+
+- 🧪 `just test` - Run all tests (core + all databases)
+- 📊 `just coverage` - Generate test coverage report
+- 🧹 `just clean` - Clean test cache and artifacts
+- 📦 `just build` - Build all modules
+- 🎨 `just format` - Format all Go code
+- 🔍 `just vet` - Run `go vet` on all modules
+- 📝 `just version` - Show the current version tag
+- 🚀 `just release <version>` - Tag and push a new version (e.g., `just release 1.2.3`)
+
+### Quick Start
+
+```bash
+# Run all tests
+just test
+
+# Format code
+just format
+
+# Release a new version
+just release 1.2.3
+```
+
 ## Example Usage
 ```golang
 package main

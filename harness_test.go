@@ -6,7 +6,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
+	containerTypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -169,7 +169,7 @@ func TestCleanup(t *testing.T) {
 	assert.False(t, running)
 
 	// Ensure that the container is removed
-	containers, err := container.client.ContainerList(context.Background(), container.ListOptions{})
+	containers, err := container.client.ContainerList(context.Background(), containerTypes.ListOptions{})
 	require.Nil(t, err)
 	for _, c := range containers {
 		assert.NotEqual(t, container.id, c.ID)

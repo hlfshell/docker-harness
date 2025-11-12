@@ -36,7 +36,7 @@ func TestMysql(t *testing.T) {
 	require.Nil(t, err)
 
 	// Create a table
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS test (id SERIAL PRIMARY KEY, name TEXT)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS test (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255))")
 	require.Nil(t, err)
 
 	// Insert a row

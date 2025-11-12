@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	harness "github.com/hlfshell/docker-harness"
 )
+
+func init() {
+	// Suppress MySQL driver error logging during connection retries
+	mysql.SetLogger(&mysql.NopLogger{})
+}
 
 type Mysql struct {
 	db        *sql.DB
@@ -54,8 +59,7 @@ func (m *Mysql) Create() error {
 	ports := m.container.GetPorts()
 	m.port = ports["3306"]
 
-	// Connect to the database, but have a built in retry
-	// / timeout due to startup time of the container
+	// Wait for container to be running
 	start := time.Now()
 	timeout := 10 * time.Second
 	running := false
@@ -65,11 +69,17 @@ func (m *Mysql) Create() error {
 			m.container.Cleanup()
 			return err
 		}
+		if !running {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 	if !running {
 		m.container.Cleanup()
 		return fmt.Errorf("container failed to start within timeout")
 	}
+
+	// Give MySQL additional time to fully initialize before connection attempts
+	time.Sleep(2 * time.Second)
 	return nil
 }
 
@@ -108,11 +118,10 @@ func (m *Mysql) ConnectWithTimeout(timeout time.Duration) (*sql.DB, error) {
 		db, err = m.Connect()
 		if err == nil && db != nil {
 			break
-		} else {
-			// Add a small time delay to allow the previous
-			// connection attempt the ability to recover
-			time.Sleep(50 * time.Millisecond)
 		}
+		// Wait longer between retries to reduce connection attempts
+		// and give MySQL more time to become ready
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	return db, err
