@@ -64,7 +64,17 @@ version:
 
 # 🚀 Tag and push a new version (usage: just release 1.2.3)
 release version:
-    @echo "🚀 Releasing version {{version}}..."
+    @echo "🚀 Preparing to release version v{{version}}..."
+    @echo "⚠️  This will create and push a git tag: v{{version}}"
+    @echo ""
+    @read -p "Are you sure you want to continue? (yes/no): " confirm && \
+        if [ "$$confirm" != "yes" ]; then \
+            echo "❌ Release cancelled."; \
+            exit 1; \
+        fi
+    @echo ""
+    @echo "🏷️  Creating tag v{{version}}..."
     @git tag -a "v{{version}}" -m "Release v{{version}}"
+    @echo "📤 Pushing tag to remote..."
     @git push origin "v{{version}}"
     @echo "✅ Released v{{version}}!"
