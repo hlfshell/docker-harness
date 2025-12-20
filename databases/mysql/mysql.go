@@ -78,9 +78,34 @@ func (m *Mysql) Create() error {
 		return fmt.Errorf("container failed to start within timeout")
 	}
 
-	// Give MySQL additional time to fully initialize before connection attempts
-	time.Sleep(2 * time.Second)
-	return nil
+	// Wait for MySQL to be ready by attempting connections
+	// MySQL can take 10-30 seconds to fully initialize, especially on slower systems
+	connectionString := fmt.Sprintf(
+		"%s:%s@tcp(localhost:%s)/%s",
+		m.username,
+		m.password,
+		m.port,
+		m.database,
+	)
+
+	readyTimeout := 60 * time.Second
+	readyStart := time.Now()
+	for time.Since(readyStart) < readyTimeout {
+		db, err := sql.Open("mysql", connectionString)
+		if err == nil {
+			err = db.Ping()
+			if err == nil {
+				// MySQL is ready!
+				db.Close()
+				return nil
+			}
+			db.Close()
+		}
+		// Wait before retrying
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return fmt.Errorf("MySQL failed to become ready within %v", readyTimeout)
 }
 
 func (m *Mysql) Connect() (*sql.DB, error) {
@@ -97,6 +122,11 @@ func (m *Mysql) Connect() (*sql.DB, error) {
 		return nil, err
 	}
 
+	// Configure connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
 	// Ping the database to ensure it is ready
 	err = db.Ping()
 	if err != nil {
@@ -104,6 +134,10 @@ func (m *Mysql) Connect() (*sql.DB, error) {
 		return nil, err
 	}
 
+	// Close previous connection if it exists
+	if m.db != nil {
+		m.db.Close()
+	}
 	m.db = db
 
 	return db, nil
@@ -111,20 +145,32 @@ func (m *Mysql) Connect() (*sql.DB, error) {
 
 func (m *Mysql) ConnectWithTimeout(timeout time.Duration) (*sql.DB, error) {
 	start := time.Now()
-	var db *sql.DB
-	var err error
+	var lastErr error
 
 	for time.Since(start) < timeout {
-		db, err = m.Connect()
+		db, err := m.Connect()
 		if err == nil && db != nil {
-			break
+			// Verify the connection is actually working
+			if pingErr := db.Ping(); pingErr == nil {
+				return db, nil
+			}
+			// If ping fails, close and try again
+			db.Close()
+			if m.db == db {
+				m.db = nil
+			}
+			lastErr = fmt.Errorf("connection opened but ping failed: %w", err)
+		} else {
+			lastErr = err
 		}
-		// Wait longer between retries to reduce connection attempts
-		// and give MySQL more time to become ready
+		// Wait between retries to avoid overwhelming MySQL
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	return db, err
+	if lastErr == nil {
+		lastErr = fmt.Errorf("timeout exceeded")
+	}
+	return nil, fmt.Errorf("failed to connect within timeout: %w", lastErr)
 }
 
 func (m *Mysql) GetDB() *sql.DB {
