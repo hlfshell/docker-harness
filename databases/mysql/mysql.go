@@ -24,6 +24,22 @@ type Mysql struct {
 }
 
 func NewMysql(name string, tag string, username string, password string, database string) (*Mysql, error) {
+	// Build environment variables based on whether we're using root or a regular user
+	env := make(map[string]string)
+
+	if username == "root" {
+		// Root user cannot be configured via MYSQL_USER
+		// Only set MYSQL_ROOT_PASSWORD and MYSQL_DATABASE
+		env["MYSQL_ROOT_PASSWORD"] = password
+		env["MYSQL_DATABASE"] = database
+	} else {
+		// Regular user: set all environment variables
+		env["MYSQL_USER"] = username
+		env["MYSQL_PASSWORD"] = password
+		env["MYSQL_ROOT_PASSWORD"] = password
+		env["MYSQL_DATABASE"] = database
+	}
+
 	container, err := harness.NewContainer(
 		name,
 		"mysql",
@@ -31,12 +47,7 @@ func NewMysql(name string, tag string, username string, password string, databas
 		map[string]string{
 			"3306": "",
 		},
-		map[string]string{
-			"MYSQL_USER":          username,
-			"MYSQL_PASSWORD":      password,
-			"MYSQL_ROOT_PASSWORD": password,
-			"MYSQL_DATABASE":      database,
-		},
+		env,
 	)
 	if err != nil {
 		return nil, err
