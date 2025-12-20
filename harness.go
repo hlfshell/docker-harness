@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	imgtypes "github.com/docker/docker/api/types/image"
 	docker "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 )
@@ -352,7 +353,7 @@ func (c *Container) GetPorts() map[string]string {
 }
 
 func (c *Container) pullImage() error {
-	out, err := c.client.ImagePull(context.Background(), fmt.Sprintf("%s:%s", c.image, c.tag), types.ImagePullOptions{})
+	out, err := c.client.ImagePull(context.Background(), fmt.Sprintf("%s:%s", c.image, c.tag), imgtypes.PullOptions{})
 	if err != nil {
 		return err
 	}
@@ -399,7 +400,7 @@ func DeleteImage(client *docker.Client, image string, tag string) error {
 	}
 
 	// Attempt to remove the image
-	_, err = client.ImageRemove(context.Background(), fmt.Sprintf("%s:%s", image, tag), types.ImageRemoveOptions{})
+	_, err = client.ImageRemove(context.Background(), fmt.Sprintf("%s:%s", image, tag), imgtypes.RemoveOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to remove image: %w", err)
 	}
