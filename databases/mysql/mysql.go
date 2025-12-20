@@ -99,8 +99,13 @@ func (m *Mysql) Create() error {
 		m.database,
 	)
 
+	// Give MySQL a moment to start initializing before we begin checking
+	time.Sleep(1 * time.Second)
+
 	readyTimeout := 60 * time.Second
 	readyStart := time.Now()
+	retryInterval := 200 * time.Millisecond
+
 	for time.Since(readyStart) < readyTimeout {
 		db, err := sql.Open("mysql", connectionString)
 		if err == nil {
@@ -113,7 +118,7 @@ func (m *Mysql) Create() error {
 			db.Close()
 		}
 		// Wait before retrying
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(retryInterval)
 	}
 
 	return fmt.Errorf("MySQL failed to become ready within %v", readyTimeout)
