@@ -1,0 +1,9 @@
+services:
+  data:
+    image: busybox:1.36
+    command: ["sh", "-c", "echo data > /data/value && sleep 300"]
+    volumes:
+      - testdata:/data
+
+volumes:
+  testdata:

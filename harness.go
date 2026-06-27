@@ -17,6 +17,13 @@ import (
 	"github.com/docker/go-connections/nat"
 )
 
+type Harness interface {
+	Start() error
+	Stop(wait int) error
+	Cleanup() error
+	IsRunning() (bool, error)
+}
+
 type Container struct {
 	client  *docker.Client
 	id      string
